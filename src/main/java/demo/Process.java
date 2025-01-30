@@ -22,8 +22,8 @@ public class Process extends UntypedAbstractActor {
 	public int readResponseCounter;
 	public int ackCounter;
 	public ArrayList<ReadResponse> readResponseList;
-	private final int N = 10;
-	private final int M = 5;
+	private final int N = 3;
+	private final int M = 3;
 
 	public Process() {
 		this.knownActors = new ArrayList<ActorRef>();

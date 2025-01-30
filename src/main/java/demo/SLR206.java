@@ -11,7 +11,7 @@ import akka.event.LoggingAdapter;
 public class SLR206 {
 	
 	public static void main(String[] args) {
-		int N = 10;
+		int N = 3;
 		int f = 1;
 
 		ArrayList<ActorRef> actorList = new ArrayList<>();
@@ -26,8 +26,8 @@ public class SLR206 {
 		}
 
 
-	    for(int x= 0; x <10; x++){
-			for(int y = 0; y < 10; y++){
+	    for(int x= 0; x <N; x++){
+			for(int y = 0; y < N; y++){
 				actorList.get(x).tell(actorList.get(y), ActorRef.noSender());
 			}
 		}
