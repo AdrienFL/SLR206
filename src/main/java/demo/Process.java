@@ -20,6 +20,7 @@ public class Process extends UntypedAbstractActor {
 	public int t;
 	public int r;
 	public int readResponseCounter;
+	public int ackCounter;
 	public ArrayList<ReadResponse> readResponseList;
 	private final int N = 10;
 
@@ -30,6 +31,7 @@ public class Process extends UntypedAbstractActor {
 		this.t = 0;
 		this.r = 0;
 		this.readResponseCounter = 0;
+		this.ackCounter = 0;
 		this.readResponseList = new ArrayList<ReadResponse>();
 
 		
@@ -62,14 +64,23 @@ public class Process extends UntypedAbstractActor {
 		for(ReadResponse r : this.readResponseList){
 			if(r.localTS > maxTimestamp){
 				maxTimestamp = r.localTS;
+				this.localValue = r.localValue;
+			}
+			if(r.localTS == maxTimestamp){
+				if(this.localValue < r.localValue){
+					this.localValue = r.localValue;
+				}
 			}
 
 		}
 		this.ackCounter = 0;
 		this.readResponseList.clear();
 
-
-
+		WriteRequest request = new WriteRequest(this.localValue, this.t);
+		for (ActorRef a : knownActors){
+			a.tell(request, this.getSelf());
+		}
+		return this.localValue;
 	}
 	
 	
@@ -95,6 +106,10 @@ public class Process extends UntypedAbstractActor {
 		this.readResponseCounter = 0;
 		this.readResponseList.clear();
 		this.t = maxTimestamp + 1;
+		WriteRequest request = new WriteRequest(this.localValue, this.t);
+		for (ActorRef a : knownActors){
+			a.tell(request, this.getSelf());
+		}
 		while(this.ackCounter < N/2){
 			try {
 				Thread.sleep(10);
@@ -154,7 +169,10 @@ public class Process extends UntypedAbstractActor {
 		if(message instanceof WriteAck){
 			WriteAck m = (WriteAck) message;
 			log.info("["+getSelf().path().name()+"] received write request from ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
-			this.ackCounter++;
+			if(this.t == m.timestamp && this.localValue == m.value){
+				this.ackCounter++;
+
+			}
 		}
 	}
 }
