@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{amsmath}
+
+\begin{document}
+
+\section*{Correctness}
+
+\subsection*{Liveness Proof:}
+The only time a process might not finish is when it is waiting for a majority of processes (lines 9, 13, 18, 21). Since the connections are assumed to be reliable, all messages sent are received in finite time by the other processes. Let $p$ be a correct process that has sent a message to the other processes and is waiting for a majority of responses. At most $f$ processes may fail, so there are at least $N - f - 1$ other processes that will function and respond. Since there are $N - 1$ other processes, the majority is $(N - 1)/2$ processes. However, since $f < N/2$, it follows that:
+\[
+N - 1 - f > (N / 2) - 1.
+\]
+
+If $N$ is even, since both $N - 1 - f$ and $(N / 2) - 1$ are integers, then:
+\[
+N - 1 - f \geq N / 2 > (N - 1) / 2.
+\]
+If $N$ is odd, since $N - 1 - f$ is an integer, we have:
+\[
+N - 1 - f \geq (N / 2) - 1 + 1/2 = (N - 1) / 2.
+\]
+In all cases, $p$ will receive a response from a majority of processes and can complete its wait. Hence, liveness is ensured.
+
+\subsection*{Safety Proof:}
+First, let’s show that when a write occurs, it always uses the highest available timestamp. \\ When a write operation starts, it contacts a majority of processes to learn the highest timestamp currently in use. If a write has completed before this one, the new write will be aware of the timestamp from that previous write operation because it has already written to a majority of processes.
+\\Let’s consider two writes from two different processes in parallel. If one write writes its timestamp and the second write notices it, the second write will have a higher timestamp. We can then easily linearize the operations by ordering them according to their timestamps. If the writes have the same timestamp, we can linearize them by placing the linearization point for the write with the smaller value before the write with the larger value.
+
+\vspace{10pt}Now, consider a read operation. A read will first contact a majority of processes to learn the most recent values, which will correspond to the highest timestamps. Because each write updates at least a majority of processes, any write that completes before the read will have written its value to at least one of the processes contacted. Therefore, the read operation will always know about the most recent write. \\Let's consider a scenario where a write occurs in parallel with a read. There are two possibilities:
+Either the read operation has already seen the value from the write: In this case, we follow the reasoning above, and the linearization point for the read will be placed just after the write.
+Or the read operation does not know about the write: If the read has not yet seen the value from the write, the linearization point will be placed just after that write.
+
+\vspace{10pt}Thus, the entire history of operations is linearizable. This argument shows that by maintaining the highest timestamps for each write and ensuring that reads always return the most recent value, we can create a linearizable execution history, where the order of operations reflects a valid sequential execution.
+
+\end{document}
+
