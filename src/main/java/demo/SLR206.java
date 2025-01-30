@@ -1,6 +1,7 @@
 package demo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -11,9 +12,9 @@ public class SLR206 {
 	
 	public static void main(String[] args) {
 		int N = 10;
+		int f = 1;
 
-
-		ArrayList<ActorRef> actorList = new ArrayList<ActorRef>();
+		ArrayList<ActorRef> actorList = new ArrayList<>();
 		
 
 		final ActorSystem system = ActorSystem.create("system");
@@ -30,9 +31,19 @@ public class SLR206 {
 				actorList.get(x).tell(actorList.get(y), ActorRef.noSender());
 			}
 		}
-		
+		Collections.shuffle(actorList);
 
- 
+		MyMessage crashMessage = new MyMessage("crash", "0");
+		MyMessage launchMessage = new MyMessage("launch", "0");
+		for(int i =0; i<N; i++){
+			if(i<f){
+				actorList.get(i).tell(crashMessage, ActorRef.noSender());
+			}
+			else{
+				actorList.get(i).tell(launchMessage, ActorRef.noSender());
+			}
+		}
+
 	    try {
 			waitBeforeTerminate();
 		} catch (InterruptedException ex) {
