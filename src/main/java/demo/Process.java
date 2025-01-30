@@ -23,6 +23,7 @@ public class Process extends UntypedAbstractActor {
 	public int ackCounter;
 	public ArrayList<ReadResponse> readResponseList;
 	private final int N = 10;
+	private final int M = 5;
 
 	public Process() {
 		this.knownActors = new ArrayList<ActorRef>();
@@ -135,9 +136,19 @@ public class Process extends UntypedAbstractActor {
 		}
 		if (message instanceof MyMessage){
 			MyMessage m = (MyMessage) message;
-
-			
+			if (m.data.equals("launch")){
+				for(int i =0; i<M; i++){
+					this.write(i*N + Integer.parseInt(getSelf().path().name()));
+				}
+			}
+			if(m.data.equals("crash")){
+				while (true) { 
+					Thread.sleep(10000);
+				}
+			}
 		}
+			
+		
 
 		if(message instanceof ReadRequest){
 			ReadRequest m = (ReadRequest) message;

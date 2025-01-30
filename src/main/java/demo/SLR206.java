@@ -21,7 +21,7 @@ public class SLR206 {
 
 
 		for (int i = 0; i< N; i++){
-			actorList.add(system.actorOf(FirstActor.createActor(), Integer.toString(i)));
+			actorList.add(system.actorOf(Process.createActor(), Integer.toString(i)));
 		}
 
 
