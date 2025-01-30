@@ -12,7 +12,7 @@ public class SLR206 {
 	
 	public static void main(String[] args) {
 		int N = 3;
-		int f = 1;
+		int f = 0;
 
 		ArrayList<ActorRef> actorList = new ArrayList<>();
 		
@@ -22,13 +22,16 @@ public class SLR206 {
 
 
 		for (int i = 0; i< N; i++){
-			actorList.add(system.actorOf(Process.createActor(), Integer.toString(i)));
+			ActorRef a = system.actorOf(Process.createActor(), Integer.toString(i));
+			actorList.add(a);
 		}
 
 
 	    for(int x= 0; x <N; x++){
 			for(int y = 0; y < N; y++){
+				
 				actorList.get(x).tell(actorList.get(y), ActorRef.noSender());
+				
 			}
 		}
 		Collections.shuffle(actorList);
@@ -37,13 +40,14 @@ public class SLR206 {
 		MyMessage launchMessage = new MyMessage("launch", "0");
 		for(int i =0; i<N; i++){
 			if(i<f){
-				actorList.get(i).tell(crashMessage, ActorRef.noSender());
+				//actorList.get(i).tell(crashMessage, ActorRef.noSender());
 			}
 			else{
-				actorList.get(i).tell(launchMessage, ActorRef.noSender());
+
+				//actorList.get(i).tell(launchMessage, ActorRef.noSender());
 			}
 		}
-
+		actorList.get(0).tell(launchMessage, ActorRef.noSender());
 	    try {
 			waitBeforeTerminate();
 		} catch (InterruptedException ex) {

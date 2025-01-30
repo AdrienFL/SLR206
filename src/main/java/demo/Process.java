@@ -1,7 +1,7 @@
 package demo;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -24,7 +24,8 @@ public class Process extends UntypedAbstractActor {
 	public ArrayList<ReadResponse> readResponseList;
 	private final int N = 3;
 	private final int M = 3;
-
+	public int rw;
+	*
 	public Process() {
 		this.knownActors = new ArrayList<ActorRef>();
 		this.localTS = 0;
@@ -34,6 +35,7 @@ public class Process extends UntypedAbstractActor {
 		this.readResponseCounter = 0;
 		this.ackCounter = 0;
 		this.readResponseList = new ArrayList<ReadResponse>();
+		this.rw = 1;
 
 		
 	}
@@ -47,57 +49,33 @@ public class Process extends UntypedAbstractActor {
 	}
 
 
-	public int read(){
+	public void read(){$
+		this.rw= 0;
 		this.r++;
 		ReadRequest m = new ReadRequest(this.r);
 		for (ActorRef a : knownActors){
 			a.tell(m, this.getSelf());
 		}
-		while(this.readResponseCounter < N/2){
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException ex) {
-				ex.printStackTrace();
-			}
-		}
-		this.readResponseCounter = 0;
-		int maxTimestamp = 0;
-		for(ReadResponse r : this.readResponseList){
-			if(r.localTS > maxTimestamp){
-				maxTimestamp = r.localTS;
-				this.localValue = r.localValue;
-			}
-			if(r.localTS == maxTimestamp){
-				if(this.localValue < r.localValue){
-					this.localValue = r.localValue;
-				}
-			}
-
-		}
-		this.ackCounter = 0;
-		this.readResponseList.clear();
-
-		WriteRequest request = new WriteRequest(this.localValue, this.t);
-		for (ActorRef a : knownActors){
-			a.tell(request, this.getSelf());
-		}
-		return this.localValue;
 	}
 	
 	
 	public boolean write(int value){
 		this.r++;
 		ReadRequest m = new ReadRequest(this.r);
+		
 		for (ActorRef a : knownActors){
+
 			a.tell(m, this.getSelf());
 		}
+		
 		while(this.readResponseCounter < N/2){
 			try {
-				Thread.sleep(10);
+				Thread.sleep(1000);
 			} catch (InterruptedException ex) {
-				ex.printStackTrace();
 			}
 		}
+		
+
 		int maxTimestamp = 0;
 		for(ReadResponse r : this.readResponseList){
 			if(r.localTS > maxTimestamp){
@@ -125,7 +103,7 @@ public class Process extends UntypedAbstractActor {
 
 	@Override
 	public void onReceive(Object message) throws Throwable {
-
+		log.info(message.getClass().getName());
 		if(message instanceof ActorRef){
 			ActorRef actorRef = (ActorRef) message;
 			
@@ -136,12 +114,23 @@ public class Process extends UntypedAbstractActor {
 		}
 		if (message instanceof MyMessage){
 			MyMessage m = (MyMessage) message;
+			log.info("["+getSelf().path().name()+"] received message from "+ getSender().path().name() +" with data ["+ m.data +"]");
+
 			if (m.data.equals("launch")){
 				for(int i =0; i<M; i++){
-					this.write(i*N + Integer.parseInt(getSelf().path().name()));
+					int v = i*N + Integer.parseInt(getSelf().path().name());
+					log.info("[Write] : "+ i + " , value :" v);
+					this.write(v);
 				}
+
+				for(int i =0; i<M; i++){
+					log.info("[Read] : "+ i );
+					this.read();
+				
+
 			}
 			if(m.data.equals("crash")){
+
 				while (true) { 
 					Thread.sleep(10000);
 				}
@@ -149,7 +138,7 @@ public class Process extends UntypedAbstractActor {
 		}
 			
 		
-
+		
 		if(message instanceof ReadRequest){
 			ReadRequest m = (ReadRequest) message;
 			log.info("["+getSelf().path().name()+"] received read request from ["+ getSender().path().name() +"] with sequence number : [" + m.sequenceNumber+"]");
@@ -170,18 +159,48 @@ public class Process extends UntypedAbstractActor {
 
 		if(message instanceof ReadResponse){
 			ReadResponse m = (ReadResponse) message;
-			log.info("["+getSelf().path().name()+"] received write request from ["+ getSender().path().name() +"] with local TS : [" + m.localTS+"] and value : ["+m.localValue+"], and sequence number : [" + m.sequenceNumber+ "]");
+			log.info("["+getSelf().path().name()+"] received read response from ["+ getSender().path().name() +"] with local TS : [" + m.localTS+"] and value : ["+m.localValue+"], and sequence number : [" + m.sequenceNumber+ "]");
 			if (this.r == m.sequenceNumber){
+
 				this.readResponseCounter++;
 				this.readResponseList.add(m);
+				if(this.readResponseCounter >= N/2){
+					this.readResponseCounter = 0;
+					int maxTimestamp = 0;
+					for(ReadResponse r : this.readResponseList){
+						if(r.localTS > maxTimestamp){
+							maxTimestamp = r.localTS;
+							this.localValue = r.localValue;
+						}
+						if(r.localTS == maxTimestamp){
+							if(this.localValue < r.localValue){
+								this.localValue = r.localValue;
+							}
+						}
+					}
+					this.ackCounter = 0;
+					this.readResponseList.clear();
+					WriteRequest request = new WriteRequest(this.localValue, this.t);
+					for (ActorRef a : knownActors){
+						a.tell(request, this.getSelf());
+					}
+				}
 			}
+			
 		}
 
 		if(message instanceof WriteAck){
 			WriteAck m = (WriteAck) message;
-			log.info("["+getSelf().path().name()+"] received write request from ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
+			log.info("["+getSelf().path().name()+"] received write ack from ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
 			if(this.t == m.timestamp && this.localValue == m.value){
 				this.ackCounter++;
+				if(this.ackCounter >= N/2){
+					this.ackCounter = 0;
+						if(this.rw == 0){
+							log.info("[Read] Return : "+ i + " , value :"+this.localValue);
+						}
+					}
+				}
 
 			}
 		}
