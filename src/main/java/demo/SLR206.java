@@ -47,6 +47,7 @@ public class SLR206 {
 				actorList.get(i).tell(launchMessage, ActorRef.noSender());
 			}
 		}
+
 	    try {
 			waitBeforeTerminate();
 		} catch (InterruptedException ex) {
