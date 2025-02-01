@@ -1,11 +1,120 @@
-Run N = 3 f = 0
-Total write waiting time = 17384424072 s 
-Total read waiting time = 0 s 
-Total time running = 0 s
-Average write waiting time per process = 5794808024062 ms
-Average read waiting time per process = 14 ms
-Average time running per process = 33 ms
-Average write waiting time per operation = 1931602674687 ms
-Average read waiting time per operation = 4 ms
-Average time running per operation = 11 ms
-Throughput = 90.0 op/s
+Run N = 3 f = 1, M = 3
+Cumulated  write waiting time for all processes = 0.005 s 
+Cumulated read waiting time for all processes = 0.016 s 
+Total time running for all processes = 0.026 s
+Average write waiting time per process = 1 ms
+Average read waiting time per process = 5 ms
+Average time running per process = 8 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 1 ms
+Average time running per operation = 2 ms
+Throughput = 346.1538461538462 op/s
+
+
+
+
+Run N = 3 f = 1, M = 10
+Cumulated  write waiting time for all processes = 0.012 s 
+Cumulated read waiting time for all processes = 0.03 s 
+Total time running for all processes = 0.052 s
+Average write waiting time per process = 4 ms
+Average read waiting time per process = 10 ms
+Average time running per process = 17 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 1 ms
+Average time running per operation = 1 ms
+Throughput = 576.9230769230769 op/s
+
+
+
+
+Run N = 3 f = 1, M = 100
+Cumulated  write waiting time for all processes = 0.057 s 
+Cumulated read waiting time for all processes = 0.128 s 
+Total time running for all processes = 0.31 s
+Average write waiting time per process = 19 ms
+Average read waiting time per process = 42 ms
+Average time running per process = 103 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 0 ms
+Average time running per operation = 1 ms
+Throughput = 967.741935483871 op/s
+
+
+
+
+Run N = 10 f = 4, M = 3
+Cumulated  write waiting time for all processes = 0.03 s 
+Cumulated read waiting time for all processes = 0.116 s 
+Total time running for all processes = 0.085 s
+Average write waiting time per process = 3 ms
+Average read waiting time per process = 11 ms
+Average time running per process = 8 ms
+Average write waiting time per operation = 1 ms
+Average read waiting time per operation = 3 ms
+Average time running per operation = 2 ms
+Throughput = 352.94117647058823 op/s
+
+
+
+
+Run N = 10 f = 4, M = 10
+Cumulated  write waiting time for all processes = 0.121 s 
+Cumulated read waiting time for all processes = 0.345 s 
+Total time running for all processes = 0.17 s
+Average write waiting time per process = 12 ms
+Average read waiting time per process = 34 ms
+Average time running per process = 17 ms
+Average write waiting time per operation = 1 ms
+Average read waiting time per operation = 3 ms
+Average time running per operation = 1 ms
+Throughput = 588.2352941176471 op/s
+
+
+
+
+Run N = 10 f = 4, M = 100
+Cumulated  write waiting time for all processes = 0.614 s 
+Cumulated read waiting time for all processes = 1.934 s 
+Total time running for all processes = 0.766 s
+Average write waiting time per process = 61 ms
+Average read waiting time per process = 193 ms
+Average time running per process = 76 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 1 ms
+Average time running per operation = 0 ms
+Throughput = 1305.4830287206266 op/s
+
+
+
+
+Run N = 100 f = 49, M = 3
+Cumulated  write waiting time for all processes = 0.701 s 
+Cumulated read waiting time for all processes = 25.154 s 
+Total time running for all processes = 0.441 s
+Average write waiting time per process = 7 ms
+Average read waiting time per process = 251 ms
+Average time running per process = 4 ms
+Average write waiting time per operation = 2 ms
+Average read waiting time per operation = 83 ms
+Average time running per operation = 1 ms
+Throughput = 680.2721088435375 op/s
+
+
+
+
+Run N = 100 f = 49, M = 10
+Cumulated  write waiting time for all processes = 1.519 s 
+Cumulated read waiting time for all processes = 32.203 s 
+Total time running for all processes = 0.867 s
+Average write waiting time per process = 15 ms
+Average read waiting time per process = 322 ms
+Average time running per process = 8 ms
+Average write waiting time per operation = 1 ms
+Average read waiting time per operation = 32 ms
+Average time running per operation = 0 ms
+Throughput = 1153.4025374855826 op/s
+
+
+
+

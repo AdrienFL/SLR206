@@ -14,13 +14,14 @@ public class Process extends UntypedAbstractActor {
 
 	private static ArrayList<Process> processList = new ArrayList<Process>();
 	private static final int N = SLR206.N;
-	public static final int M = 3;
+	public static final int M = SLR206.M;
 
 	private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
 	private ArrayList<ActorRef> knownActors;
 
 	public int localValue;
+	public boolean isCrashed = false;
 	public int localTS;
 	public int t;
 	public int r;
@@ -102,6 +103,9 @@ public class Process extends UntypedAbstractActor {
 
 		@Override
 		public void onReceive(Object message) throws Throwable {
+			if (isCrashed){
+				return;
+			}
 			if(message instanceof ActorRef){
 				ActorRef actorRef = (ActorRef) message;
 
@@ -127,9 +131,11 @@ public class Process extends UntypedAbstractActor {
 					this.write(this.valueToWrite.get(0));
 				}
 				if(m.data.equals("crash")){
-					while (true) {
-						Thread.sleep(10000);
-					}
+					log.info("Process ["+getSelf().path().name()+"] is crashing");
+					log.info("Process ["+getSelf().path().name()+"] is done");
+					this.isDone = true;
+					run_end_time = 0;
+					isCrashed = true;
 				}
 				if(m.data.equals("next")){
 					this.opNumber++;
@@ -172,6 +178,7 @@ public class Process extends UntypedAbstractActor {
 			}
 
 			if(message instanceof WriteRequest){
+				w_start_time = System.currentTimeMillis();
 				WriteRequest m = (WriteRequest) message;
 				log.info("Process ["+getSelf().path().name()+"] received write request from process ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
 				if (m.timestamp > this.localTS || (m.timestamp == this.localTS && m.value > localValue)) {
@@ -273,6 +280,14 @@ public class Process extends UntypedAbstractActor {
 
 		public long getRunningTime(){
 			return this.run_end_time - this.run_start_time;
+		}
+
+		public long getStartTime(){
+			return this.run_start_time;
+		}
+
+		public long getEndTime(){
+			return this.run_end_time;
 		}
 
 	}
