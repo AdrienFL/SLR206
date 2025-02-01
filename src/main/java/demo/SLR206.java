@@ -40,14 +40,13 @@ public class SLR206 {
 		MyMessage launchMessage = new MyMessage("launch", "0");
 		for(int i =0; i<N; i++){
 			if(i<f){
-				//actorList.get(i).tell(crashMessage, ActorRef.noSender());
+				actorList.get(i).tell(crashMessage, ActorRef.noSender());
 			}
 			else{
 
-				//actorList.get(i).tell(launchMessage, ActorRef.noSender());
+				actorList.get(i).tell(launchMessage, ActorRef.noSender());
 			}
 		}
-		actorList.get(0).tell(launchMessage, ActorRef.noSender());
 	    try {
 			waitBeforeTerminate();
 		} catch (InterruptedException ex) {

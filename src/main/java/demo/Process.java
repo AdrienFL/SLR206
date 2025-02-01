@@ -78,7 +78,6 @@ public class Process extends UntypedAbstractActor {
 
 	@Override
 	public void onReceive(Object message) throws Throwable {
-		log.info(message.getClass().getName());
 		if(message instanceof ActorRef){
 			ActorRef actorRef = (ActorRef) message;
 			
@@ -97,6 +96,7 @@ public class Process extends UntypedAbstractActor {
 					valueToWrite.add(v);
 					
 				}
+				log.info("[Write] : Operation : ["+ this.opNumber + "] , value : " + this.valueToWrite.get(this.opNumber));
 				this.write(this.valueToWrite.get(0));
 			}
 			if(m.data.equals("crash")){
@@ -105,17 +105,26 @@ public class Process extends UntypedAbstractActor {
 				}
 			}
 			if(m.data.equals("next")){
-				if(this.opNumber<M){
+				this.ackCounter =0;
+				this.readResponseCounter = 0;
+				if(this.opNumber <2*M-1 && this.opNumber > M-2){
+					this.rw = 0;
 					this.opNumber++;
-					log.info("[Write] : "+ this.opNumber + " , value : " + this.valueToWrite.get(this.opNumber));
-					this.write(this.valueToWrite.get(this.opNumber));
-				}
-				else{
-					this.opNumber++;
-					log.info("[Read] : "+ (this.opNumber - M));
+					log.info("[DEBUG] opNumber :" + this.opNumber);
+
+					log.info("[Read] : "+ (this.opNumber - M +1));
 					this.read();
 
 				}
+				if(this.opNumber<M-1){
+					
+					this.rw = 1;
+					this.opNumber++;
+					log.info("[DEBUG] opNumber :" + this.opNumber);
+					log.info("[Write] : Operation : ["+ this.opNumber + "] , value : " + this.valueToWrite.get(this.opNumber));
+					this.write(this.valueToWrite.get(this.opNumber));
+				}
+				
 			}
 		}
 		
@@ -194,16 +203,17 @@ public class Process extends UntypedAbstractActor {
 			log.info("["+getSelf().path().name()+"] received write ack from ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
 			if(this.t == m.timestamp && this.localValue == m.value){
 				this.ackCounter++;
-				if(this.ackCounter >= N/2){
+				//log.info("[DEBUG] "+ this.ackCounter);
+				if(this.ackCounter > N/2){
 					this.ackCounter = 0;
-						if(this.rw == 0){
-							log.info("[Read] Return : "+ (this.opNumber - M) + " , value :"+this.localValue);
-						}
-						if(this.rw == 1){
-							log.info("[Write] Return : " + this.opNumber  +" , value : ok");
-						}
-						MyMessage nextOperationMessage = new MyMessage("next", "0");
-						getContext().system().scheduler().scheduleOnce(Duration.ofMillis(0), getSelf(), nextOperationMessage, getContext().system().dispatcher(), ActorRef.noSender());
+					if(this.rw == 0){
+						log.info("[Read] [Return] Operation : "+ (this.opNumber - M+1) + " , value : ["+this.localValue + "]");
+					}
+					if(this.rw == 1){
+						log.info("[Write] [Return] Operation : " + this.opNumber  +" , value : ok");
+					}
+					MyMessage nextOperationMessage = new MyMessage("next", "0");
+					getContext().system().scheduler().scheduleOnce(Duration.ofMillis(0), getSelf(), nextOperationMessage, getContext().system().dispatcher(), ActorRef.noSender());
 
 					}
 				}
