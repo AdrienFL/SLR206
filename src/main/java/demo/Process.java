@@ -1,4 +1,5 @@
 package demo;
+import java.lang.reflect.Array;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,13 +20,16 @@ public class Process extends UntypedAbstractActor {
 	public int localTS;
 	public int t;
 	public int r;
-	public int readResponseCounter;
-	public int ackCounter;
-	public ArrayList<ReadResponse> readResponseList;
+	private int readResponseCounter;
+	private int ackCounter;
+	private ArrayList<ReadResponse> readResponseList;
 	private final int N = 3;
 	private final int M = 3;
-	public int rw;
-	*
+	private int rw;
+	private int opNumber;
+	private ArrayList<Integer> valueToWrite;
+
+	
 	public Process() {
 		this.knownActors = new ArrayList<ActorRef>();
 		this.localTS = 0;
@@ -36,6 +40,8 @@ public class Process extends UntypedAbstractActor {
 		this.ackCounter = 0;
 		this.readResponseList = new ArrayList<ReadResponse>();
 		this.rw = 1;
+		this.opNumber = 0;
+		this.valueToWrite = new ArrayList<Integer>();
 
 		
 	}
@@ -49,7 +55,7 @@ public class Process extends UntypedAbstractActor {
 	}
 
 
-	public void read(){$
+	public void read(){
 		this.rw= 0;
 		this.r++;
 		ReadRequest m = new ReadRequest(this.r);
@@ -59,46 +65,15 @@ public class Process extends UntypedAbstractActor {
 	}
 	
 	
-	public boolean write(int value){
+	public void write(int value){
+		
 		this.r++;
 		ReadRequest m = new ReadRequest(this.r);
 		
 		for (ActorRef a : knownActors){
-
 			a.tell(m, this.getSelf());
 		}
-		
-		while(this.readResponseCounter < N/2){
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-		}
-		
 
-		int maxTimestamp = 0;
-		for(ReadResponse r : this.readResponseList){
-			if(r.localTS > maxTimestamp){
-				maxTimestamp = r.localTS;
-			}
-		}
-		this.readResponseCounter = 0;
-		this.readResponseList.clear();
-		this.t = maxTimestamp + 1;
-		WriteRequest request = new WriteRequest(this.localValue, this.t);
-		for (ActorRef a : knownActors){
-			a.tell(request, this.getSelf());
-		}
-		while(this.ackCounter < N/2){
-			try {
-				Thread.sleep(10);
-			} catch (InterruptedException ex) {
-				ex.printStackTrace();
-			}
-		}
-		this.ackCounter = 0;
-
-		return true;
 	}
 
 	@Override
@@ -119,24 +94,31 @@ public class Process extends UntypedAbstractActor {
 			if (m.data.equals("launch")){
 				for(int i =0; i<M; i++){
 					int v = i*N + Integer.parseInt(getSelf().path().name());
-					log.info("[Write] : "+ i + " , value :" v);
-					this.write(v);
+					valueToWrite.add(v);
+					
 				}
-
-				for(int i =0; i<M; i++){
-					log.info("[Read] : "+ i );
-					this.read();
-				
-
+				this.write(this.valueToWrite.get(0));
 			}
 			if(m.data.equals("crash")){
-
 				while (true) { 
 					Thread.sleep(10000);
 				}
 			}
+			if(m.data.equals("next")){
+				if(this.opNumber<M){
+					this.opNumber++;
+					log.info("[Write] : "+ this.opNumber + " , value : " + this.valueToWrite.get(this.opNumber));
+					this.write(this.valueToWrite.get(this.opNumber));
+				}
+				else{
+					this.opNumber++;
+					log.info("[Read] : "+ (this.opNumber - M));
+					this.read();
+
+				}
+			}
 		}
-			
+		
 		
 		
 		if(message instanceof ReadRequest){
@@ -165,24 +147,42 @@ public class Process extends UntypedAbstractActor {
 				this.readResponseCounter++;
 				this.readResponseList.add(m);
 				if(this.readResponseCounter >= N/2){
-					this.readResponseCounter = 0;
-					int maxTimestamp = 0;
-					for(ReadResponse r : this.readResponseList){
-						if(r.localTS > maxTimestamp){
-							maxTimestamp = r.localTS;
-							this.localValue = r.localValue;
-						}
-						if(r.localTS == maxTimestamp){
-							if(this.localValue < r.localValue){
+					if(rw == 0){
+						this.readResponseCounter = 0;
+						int maxTimestamp = 0;
+						for(ReadResponse r : this.readResponseList){
+							if(r.localTS > maxTimestamp){
+								maxTimestamp = r.localTS;
 								this.localValue = r.localValue;
 							}
+							if(r.localTS == maxTimestamp){
+								if(this.localValue < r.localValue){
+									this.localValue = r.localValue;
+								}
+							}
+						}
+						this.ackCounter = 0;
+						this.readResponseList.clear();
+						WriteRequest request = new WriteRequest(this.localValue, this.t);
+						for (ActorRef a : knownActors){
+							a.tell(request, this.getSelf());
 						}
 					}
-					this.ackCounter = 0;
-					this.readResponseList.clear();
-					WriteRequest request = new WriteRequest(this.localValue, this.t);
-					for (ActorRef a : knownActors){
-						a.tell(request, this.getSelf());
+
+					if(rw == 1){
+						int maxTimestamp = 0;
+						for(ReadResponse r : this.readResponseList){
+							if(r.localTS > maxTimestamp){
+								maxTimestamp = r.localTS;
+							}
+						}
+						this.readResponseCounter = 0;
+						this.readResponseList.clear();
+						this.t = maxTimestamp + 1;
+						WriteRequest request = new WriteRequest(this.valueToWrite.get(this.opNumber), this.t);
+						for (ActorRef a : knownActors){
+							a.tell(request, this.getSelf());
+						}
 					}
 				}
 			}
@@ -197,14 +197,20 @@ public class Process extends UntypedAbstractActor {
 				if(this.ackCounter >= N/2){
 					this.ackCounter = 0;
 						if(this.rw == 0){
-							log.info("[Read] Return : "+ i + " , value :"+this.localValue);
+							log.info("[Read] Return : "+ (this.opNumber - M) + " , value :"+this.localValue);
 						}
+						if(this.rw == 1){
+							log.info("[Write] Return : " + this.opNumber  +" , value : ok");
+						}
+						MyMessage nextOperationMessage = new MyMessage("next", "0");
+						getContext().system().scheduler().scheduleOnce(Duration.ofMillis(0), getSelf(), nextOperationMessage, getContext().system().dispatcher(), ActorRef.noSender());
+
 					}
 				}
 
 			}
 		}
 	}
-}
+
 
 
