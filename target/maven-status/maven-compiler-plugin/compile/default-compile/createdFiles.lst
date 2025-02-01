@@ -2,7 +2,6 @@ demo\WriteAck.class
 demo\WriteRequest.class
 demo\SLR206.class
 demo\MyMessage.class
-demo\Process2.class
 demo\ReadResponse.class
 demo\Process.class
 demo\ReadRequest.class
