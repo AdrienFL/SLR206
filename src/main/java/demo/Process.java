@@ -159,20 +159,21 @@ public class Process extends UntypedAbstractActor {
 					if(rw == 0){
 						this.readResponseCounter = 0;
 						int maxTimestamp = 0;
+						int maxValue = 0;
 						for(ReadResponse r : this.readResponseList){
 							if(r.localTS > maxTimestamp){
 								maxTimestamp = r.localTS;
-								this.localValue = r.localValue;
+								maxValue = r.localValue;
 							}
 							if(r.localTS == maxTimestamp){
 								if(this.localValue < r.localValue){
-									this.localValue = r.localValue;
+									maxValue = r.localValue;	
 								}
 							}
 						}
 						this.ackCounter = 0;
 						this.readResponseList.clear();
-						WriteRequest request = new WriteRequest(this.localValue, this.t);
+						WriteRequest request = new WriteRequest(maxValue, maxTimestamp);
 						for (ActorRef a : knownActors){
 							a.tell(request, this.getSelf());
 						}
