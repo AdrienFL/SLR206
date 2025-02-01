@@ -1,0 +1,11 @@
+Run N = 3 f = 0
+Total write waiting time = 17384424072 s 
+Total read waiting time = 0 s 
+Total time running = 0 s
+Average write waiting time per process = 5794808024062 ms
+Average read waiting time per process = 14 ms
+Average time running per process = 33 ms
+Average write waiting time per operation = 1931602674687 ms
+Average read waiting time per operation = 4 ms
+Average time running per operation = 11 ms
+Throughput = 90.0 op/s
