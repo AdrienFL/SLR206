@@ -108,23 +108,24 @@ public class Process extends UntypedAbstractActor {
 			}
 			if(m.data.equals("next")){
 				this.opNumber++;
+				log.info("[DEBUG] opNumber :" + this.opNumber);
+
 				this.ackCounter.put(this.opNumber, 0);
 				this.readResponseCounter.put(this.opNumber, 0);
-				if(this.opNumber <2*M-1 && this.opNumber > M-2){
-					this.rw = 0;
-					
-					log.info("[DEBUG] opNumber :" + this.opNumber);
-
-					log.info("[Read] : "+ (this.opNumber - M +1));
-					this.read();
-
-				}
-				if(this.opNumber<M-1){
+				
+				if(this.opNumber<=M-1){
 					
 					this.rw = 1;
-					log.info("[DEBUG] opNumber :" + this.opNumber);
+					
 					log.info("[Write] : Operation : ["+ this.opNumber + "] , value : " + this.valueToWrite.get(this.opNumber));
 					this.write(this.valueToWrite.get(this.opNumber));
+				}
+				else{
+					if (this.opNumber <=2*M-1){
+						this.rw = 0;
+						log.info("[Read] : "+ (this.opNumber - M));
+						this.read();
+					}
 				}
 				
 			}
