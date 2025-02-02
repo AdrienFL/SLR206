@@ -133,3 +133,63 @@ Throughput = 1649.8927569707969 op/s
 
 
 
+Run N = 3 f = 1, M = 333
+Cumulated  write waiting time for all processes = 0.59 s 
+Cumulated read waiting time for all processes = 0.194 s 
+Total time running for all processes = 0.55 s
+Average write waiting time per process = 196 ms
+Average read waiting time per process = 64 ms
+Average time running per process = 183 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 0 ms
+Average time running per operation = 0 ms
+Throughput = 1816.3636363636363 op/s
+
+
+
+
+Run N = 3 f = 1, M = 3333
+Cumulated  write waiting time for all processes = 1.803 s 
+Cumulated read waiting time for all processes = 1.493 s 
+Total time running for all processes = 2.205 s
+Average write waiting time per process = 601 ms
+Average read waiting time per process = 497 ms
+Average time running per process = 735 ms
+Average write waiting time per operation = 0 ms
+Average read waiting time per operation = 0 ms
+Average time running per operation = 0 ms
+Throughput = 4534.693877551021 op/s
+
+
+
+
+Run N = 100 f = 49, M = 100
+Cumulated  write waiting time for all processes = 471.814 s 
+Cumulated read waiting time for all processes = 690.629 s 
+Total time running for all processes = 23.455 s
+Average write waiting time per process = 4718 ms
+Average read waiting time per process = 6906 ms
+Average time running per process = 234 ms
+Average write waiting time per operation = 47 ms
+Average read waiting time per operation = 69 ms
+Average time running per operation = 2 ms
+Throughput = 426.3483265828182 op/s
+
+
+
+
+Run N = 100 f = 49, M = 100
+Cumulated  write waiting time for all processes = 154.953 s 
+Cumulated read waiting time for all processes = 149.028 s 
+Total time running for all processes = 6.237 s
+Average write waiting time per process = 1549 ms
+Average read waiting time per process = 1490 ms
+Average time running per process = 62 ms
+Average write waiting time per operation = 15 ms
+Average read waiting time per operation = 14 ms
+Average time running per operation = 0 ms
+Throughput = 1603.33493666827 op/s
+
+
+
+

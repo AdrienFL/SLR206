@@ -1,11 +1,122 @@
 \documentclass{article}
+\usepackage{etex}
 \usepackage{amsmath}
-
+\usepackage{pdfpages}
+\usepackage{tikz}
+\usepackage{subcaption}
+\usepackage{pgf-umlsd}
+\usepackage{pgfplots}
+\usepackage{geometry}
+\geometry{
+	a4paper,
+	left=25.4mm,
+	right=25.4mm,
+	top=25mm,
+	bottom=25.4mm
+	}
 \begin{document}
 
-\section*{Correctness}
+\includepdf{title.pdf}
 
-\subsection*{Liveness Proof:}
+\tableofcontents
+\listoffigures
+
+\newpage
+\section{Java Implementation of the Robust Key-Value Store}
+
+\subsection{Java classes}
+For our implementation with Java and the Akka framework, we have created the following classes:
+
+\begin{itemize}
+    \item \texttt{SLR206}: The main class that creates the different actors and configures the system. It is also the class that computes the statistics at the end of the simulation.
+
+    \item \texttt{Process}: The actor class. The algorithms given in the pseudo-code are implemented in this class.
+
+    \item \texttt{MyMessage}: The class that represents the string messages sent between the processes. It is used to launch processes or trigger crashes.
+
+    \item \texttt{ReadRequest}: The class that represents the read requests sent between the processes.
+
+    \item \texttt{WriteRequest}: The class that represents the write requests sent between the processes.
+
+    \item \texttt{ReadResponse}: The class that represents the read responses sent between the processes.
+
+    \item \texttt{WriteAck}: The class that represents the write acknowledgments sent between the processes.
+\end{itemize}
+
+We didn't want to use multiple threads in the \texttt{Process} class due to the large number of processes
+being launched. It is more efficient to let the Akka framework's logic thread handle the processes.
+Therefore, we implemented a state machine in the \texttt{Process} class to manage the different states
+of the functions: sending the initial read request, waiting for a quorum of responses, sending the
+write request, and finally, waiting for a quorum of write acknowledgments.
+
+
+\newpage
+\subsection{Akka Design}
+
+\begin{figure}[h!]
+\centering
+
+\begin{sequencediagram}
+    \newthread{main}{main}
+    \newinst{a}{Correct Process  A}
+    \newinst[1]{b}{Correct Process B}
+    \newinst[1]{c}{Failed Process C}
+
+    \mess{main}{refs}{a}
+    \mess{main}{refs}{b}
+    \mess{main}{refs}{c}
+    \mess{main}{crash}{c}
+    \mess{main}{launch}{a}
+    \mess{main}{launch}{b}
+    \begin{sdblock}{write}{B Writes}
+        \begin{call}{b}{Read request}{a}{Read response (ts)}
+        \end{call}
+        \begin{call}{b}{Write request (val, ts)}{a}{Write ack}
+        \end{call}
+    \end{sdblock}
+    \begin{sdblock}{read}{A reads}
+        \begin{call}{a}{Read request}{b}{Read response (val, ts)}
+        \end{call}
+        \begin{call}{a}{Write request (val, ts)}{b}{Write ack}
+        \end{call}
+    \end{sdblock}
+    \mess{a}{done, stats}{main}
+    \mess{b}{done, stats}{main}
+\end{sequencediagram}
+
+\caption{Sequence diagram of the Akka design}
+\end{figure}
+
+We decided not to use multiple threads in the \texttt{Process} class due to
+the high volume of processes being launched. It is more efficient to let the
+main logic thread of the Akka framework handle the processes. As a result, we
+implemented a state machine within the \texttt{Process} class to manage the different
+stages of the functions: sending the initial read request, waiting for a quorum
+of responses, sending the write request, and finally, waiting for a quorum of
+write acknowledgments.
+\newpage
+\subsection{statistics computation}
+
+Throughout the simulation, the processes continuously collect data for
+the statistics. At the end of the simulation, the main class will compute this data:
+
+\begin{itemize}
+    \item The time taken for each process to complete a write operation.
+    \item The time taken for each process to complete a read operation.
+    \item The average time spend by a process to complete all the write operations.
+    \item The average time spend by a process to complete all the read operations.
+    \item The throughput of the system.
+\end{itemize}
+
+For the throughput, we have used the formula :
+$$
+\text{Throughput} = \frac{\text{Number of operations}}{\text{Total time}}
+$$
+
+\newpage
+\section{Correctness}
+
+\subsection{Liveness Proof:}
 The only time a process might not finish is when it is waiting for a majority of processes (lines 9, 13, 18, 21). Since the connections are assumed to be reliable, all messages sent are received in finite time by the other processes. Let $p$ be a correct process that has sent a message to the other processes and is waiting for a majority of responses. At most $f$ processes may fail, so there are at least $N - f - 1$ other processes that will function and respond. Since there are $N - 1$ other processes, the majority is $(N - 1)/2$ processes. However, since $f < N/2$, it follows that:
 \[
 N - 1 - f > (N / 2) - 1.
@@ -21,7 +132,7 @@ N - 1 - f \geq (N / 2) - 1 + 1/2 = (N - 1) / 2.
 \]
 In all cases, $p$ will receive a response from a majority of processes and can complete its wait. Hence, liveness is ensured.
 
-\subsection*{Safety Proof:}
+\subsection{Safety Proof:}
 First, let’s show that when a write occurs, it always uses the highest available timestamp. \\ When a write operation starts, it contacts a majority of processes to learn the highest timestamp currently in use. If a write has completed before this one, the new write will be aware of the timestamp from that previous write operation because it has already written to a majority of processes.
 \\Let’s consider two writes from two different processes in parallel. If one write writes its timestamp and the second write notices it, the second write will have a higher timestamp. We can then easily linearize the operations by ordering them according to their timestamps. If the writes have the same timestamp, we can linearize them by placing the linearization point for the write with the smaller value before the write with the larger value.
 
@@ -31,5 +142,346 @@ Or the read operation does not know about the write: If the read has not yet see
 
 \vspace{10pt}Thus, the entire history of operations is linearizable. This argument shows that by maintaining the highest timestamps for each write and ensuring that reads always return the most recent value, we can create a linearizable execution history, where the order of operations reflects a valid sequential execution.
 
+\newpage
+\section{Performance analysis}
+The simulation has different parameters that can be changed to test the performance of the system. The main parameters are:
+
+\begin{itemize}
+    \item $N$ The number of processes.
+    \item $M$ The number of operations per process.
+    \item $f$ The number of failures.
+\end{itemize}
+
+Since we need a quorum, $f$ must be less than $N/2$. Thus,
+we have nine different scenarios to test the performance of the simulation
+with $(N,f) \in \{(3,1),(10,4),(100,49)\}$ and $M \in \{3,10,100\}$.
+
+
+\subsection{Results for a fix number of operations}
+Let's first analyze the results for a fix number of operations and different values of $N$ and $f$.
+
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Throughput (op/s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=800,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 409.09) (10, 468.75) (100, 737.10)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Throughput comparison }
+\end{subfigure}%
+\begin{subfigure}{.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Time per operation (ms)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=40,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 1) (10, 4) (100, 35)};
+        \addlegendentry{Write}
+
+        \addplot coordinates {(3, 1) (10, 5) (100, 26)};
+        \addlegendentry{Read}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Operation execution time comparison}
+\end{subfigure}
+
+\caption{Performance analysis for \( M = 3 \)}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \begin{tikzpicture}[scale=0.9]
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Latency (s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2,
+            ymajorgrids=true,
+            grid style=dashed,
+        ]
+        \addplot coordinates {(3, 0.022) (10, 0.064) (100, 0.407)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Latency comparison for \( M = 3 \)}
+\end{figure}
+
+
+We can observe that throughput increases with the number of processes. However,
+the growth factor is not linear. Adding a significantly larger number of processes
+does not lead to a substantial increase in throughput, as there are not many
+operations per process to execute.
+
+Similarly, the time required to complete an operation increases with the number
+of processes. This is because processes must wait for a majority of responses
+to proceed. As the number of processes grows, it takes more time to gather a
+majority of responses.
+
+One reason the time taken to complete a write operation is longer than for a
+read operation is that, during a read, some processes may have already completed
+their operations. The network might also be less congested, allowing processes
+to receive a majority of responses more quickly.
+
+\vspace{10pt}
+The results are consistent for the other values of
+$M$: both throughput and the time taken to complete an operation
+increase with the number of processes. However, the more operations
+there are per process, the better the performance of the system with
+ 100 processes running, though some latency remains.
+
+\newpage
+
+\subsection{Results for a fix number of processes}
+As we did in the previous section, we will analyze the results for
+a fixed number of processes and different values of $M$. This will allow us
+to identify which configuration is most efficient in each scenario.
+
+
+\subsubsection{Results for \(N = 3\) and \(f = 1\)}
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of operation per processes},
+            ylabel={Throughput (op/s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2000,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 409.09) (10, 491.80) (100, 983.60)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Throughput comparison }
+\end{subfigure}%
+\begin{subfigure}{.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Time per operation (ms)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=40,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 1) (10, 2) (100, 0.06)};
+        \addlegendentry{Write}
+
+        \addplot coordinates {(3, 1) (10, 0.8) (100, 0.07)};
+        \addlegendentry{Read}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Operation execution time comparison}
+\end{subfigure}
+\caption{Performance analysis for \( N = 3 \)}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \begin{tikzpicture}[scale=0.9]
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Latency (s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2,
+            ymajorgrids=true,
+            grid style=dashed,
+        ]
+        \addplot coordinates {(3, 0.022) (10, 0.061) (100, 0.305)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Latency comparison for \( N = 3 \)}
+\end{figure}
+
+We can observe that throughput increases with the number of operations
+per process, while the time taken to complete an operation remains almost constant.
+
+Although we cannot compute many operations in parallel, the throughput
+remains high because the quorum is reached almost instantaneously.
+
+\newpage
+
+\subsubsection{Results for \(N = 10\) and \(f = 4\)}
+
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of operation per processes},
+            ylabel={Throughput (op/s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2000,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 468.75) (10, 436.68) (100, 1488.09)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Throughput comparison }
+\end{subfigure}%
+\begin{subfigure}{.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Time per operation (ms)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=40,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 4) (10, 25) (100, 2)};
+        \addlegendentry{Write}
+
+        \addplot coordinates {(3, 5) (10, 6) (100, 0.09)};
+        \addlegendentry{Read}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Operation execution time comparison}
+\end{subfigure}
+\caption{Performance analysis for \( N = 10 \)}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \begin{tikzpicture}[scale=0.9]
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Latency (s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2,
+            ymajorgrids=true,
+            grid style=dashed,
+        ]
+        \addplot coordinates {(3, 0.064) (10, 0.229) (100, 0.672)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Latency comparison for \( N = 10 \)}
+\end{figure}
+
+First, we observe that with a low number of operations,
+this configuration is less efficient than the previous
+one—about 12\% less efficient. It experiences higher latency,
+and throughput is lower. However, for higher values of $M$, this
+configuration becomes more efficient because it can process several
+operations concurrently.
+
+If we consider each operation as a request from a user,
+and latency is a critical factor, this configuration is better suited.
+ Fewer users will have to wait for processes to handle their requests.
+
+The operation execution time may seem unusual, but except for the
+case with 10 processes, the time taken to complete an operation
+remains almost constant. This indicates that the processes are
+waiting for each other more in this configuration compared to the
+previous one.
+\newpage
+\subsubsection{Results for \(N = 100\) and \(f = 49\)}
+\begin{figure}[h!]
+    \centering
+    \begin{subfigure}{0.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of operation per processes},
+            ylabel={Throughput (op/s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=2000,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 737.1) (10, 1067.23) (100, 1649.8)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Throughput comparison }
+\end{subfigure}%
+\begin{subfigure}{.55\textwidth}
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Time per operation (ms)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=40,
+            ymajorgrids=true,
+            grid style=dashed
+        ]
+        \addplot coordinates {(3, 35) (10, 29) (100, 16)};
+        \addlegendentry{Write}
+
+        \addplot coordinates {(3, 26) (10, 13) (100, 13)};
+        \addlegendentry{Read}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Operation execution time comparison}
+\end{subfigure}
+\caption{Performance analysis for \( N = 100 \)}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \begin{tikzpicture}[scale=0.9]
+        \begin{axis}[
+            xlabel={Number of processes},
+            ylabel={Latency (s)},
+            xtick=data,
+            symbolic x coords={3, 10, 100},
+            ymin=0, ymax=7,
+            ymajorgrids=true,
+            grid style=dashed,
+        ]
+        \addplot coordinates {(3, 0.407) (10, 0.937) (100, 6.061)};
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Latency comparison for \( N = 100 \)}
+\end{figure}
+
+Once again, the throughput follows a logarithmic trend with the number of operations
+per process. This configuration is less efficient than the previous ones for smaller
+values of $M$.
+
+For instance, with 300 operations, the configuration with 3 processes is 26\% more
+efficient than this one. Similarly, for 1000 operations, the configuration with 10
+processes is 13\% more efficient. However, as the number of operations increases,
+this configuration becomes more efficient because it can process several operations
+simultaneously.
+
+\newpage
+
+\section{Conclusion}
+In conclusion, we can say that the configuration with 3 processes is more
+efficient for a small number of operations, while the configuration with 100
+processes is more efficient for a large number of operations. The configuration
+with 10 processes lies in between.
+
+If we were to implement this system in a real-life scenario, we would need to
+consider the number of operations to be processed and the acceptable latency.
+Server characteristics and network capacity may also impose constraints that
+influence the choice of the optimal configuration. The configuration with 10
+processes could be a good compromise between the other two in many situations,
+as it is sufficiently efficient for handling both small and large numbers of requests.
 \end{document}
 

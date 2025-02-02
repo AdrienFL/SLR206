@@ -79,6 +79,7 @@ public class Process extends UntypedAbstractActor {
 
 
 		public void read(){
+			r_start_time = System.currentTimeMillis();
 			this.rw= 0;
 			this.r++;
 			ReadRequest m = new ReadRequest(this.r);
@@ -94,6 +95,7 @@ public class Process extends UntypedAbstractActor {
 			this.r++;
 			ReadRequest m = new ReadRequest(this.r);
 
+			w_start_time = System.currentTimeMillis();
 			for (ActorRef a : knownActors){
 				log.info("Process ["+getSelf().path().name()+"] sending read request to process ["+ a.path().name() +"] with sequence number : [" + this.r+"]");
 				a.tell(m, this.getSelf());
@@ -169,7 +171,6 @@ public class Process extends UntypedAbstractActor {
 
 
 			if(message instanceof ReadRequest){
-				r_start_time = System.currentTimeMillis();
 				ReadRequest m = (ReadRequest) message;
 				log.info("Process ["+getSelf().path().name()+"] received read request from process ["+ getSender().path().name() +"] with sequence number : [" + m.sequenceNumber+"]");
 				ReadResponse res = new ReadResponse(localValue, localTS, r);
@@ -178,7 +179,6 @@ public class Process extends UntypedAbstractActor {
 			}
 
 			if(message instanceof WriteRequest){
-				w_start_time = System.currentTimeMillis();
 				WriteRequest m = (WriteRequest) message;
 				log.info("Process ["+getSelf().path().name()+"] received write request from process ["+ getSender().path().name() +"] with value : [" + m.value+"] and timestamp : ["+m.timestamp+"]");
 				if (m.timestamp > this.localTS || (m.timestamp == this.localTS && m.value > localValue)) {
@@ -191,8 +191,6 @@ public class Process extends UntypedAbstractActor {
 			}
 
 			if(message instanceof ReadResponse){
-				r_end_time = System.currentTimeMillis();
-				this.r_waiting_time += r_end_time - r_start_time;
 				ReadResponse m = (ReadResponse) message;
 				log.info("Process ["+getSelf().path().name()+"] received read response from process ["+ getSender().path().name() +"] with local TS : [" + m.localTS+"] and value : ["+m.localValue+"], and sequence number : [" + m.sequenceNumber+ "]");
 
@@ -251,8 +249,8 @@ public class Process extends UntypedAbstractActor {
 					if(this.ackCounter.get(this.opNumber) > N/2 ){
 						this.ackCounter.put(this.opNumber, 0);
 						if(this.rw == 0){
-				w_end_time = System.currentTimeMillis();
-				this.r_waiting_time += r_end_time - r_start_time;
+						r_end_time = System.currentTimeMillis();
+						this.r_waiting_time += r_end_time - r_start_time;
 						log.info("[Read] [Return] Operation : "+ (this.opNumber - M+1) + " , value : ["+this.localValue + "]");
 					}
 					if(this.rw == 1){
